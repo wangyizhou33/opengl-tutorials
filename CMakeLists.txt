@@ -518,6 +518,7 @@ add_executable(playground
 	common/shader.cpp
 	common/texture.cpp
 	common/controls.cpp
+	common/objloader.cpp
 )
 target_link_libraries(playground
 	${ALL_LIBS}

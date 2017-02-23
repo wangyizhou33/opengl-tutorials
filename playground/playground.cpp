@@ -14,6 +14,7 @@ using namespace glm;
 #include <common/shader.hpp>
 #include <common/texture.hpp>
 #include <common/controls.hpp>
+#include <common/objloader.hpp>
 
 int main(void)
 {
@@ -68,111 +69,40 @@ int main(void)
     glEnable(GL_DEPTH_TEST);
     // Accept fragment if it closer to the camera than the former one
     glDepthFunc(GL_LESS);
+    // Cull triangles which normal is not towards the camera
+    glEnable(GL_CULL_FACE);
 
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
 
     GLuint programID =
-        LoadShaders("../tutorial06_keyboard_and_mouse/TransformVertexShader.vertexshader",
-                    "../tutorial06_keyboard_and_mouse/TextureFragmentShader.fragmentshader");
+        LoadShaders("../tutorial07_model_loading/TransformVertexShader.vertexshader",
+                    "../tutorial07_model_loading/TextureFragmentShader.fragmentshader");
 
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-
-    static const GLfloat g_vertex_buffer_data[] =
-    {
-        -1.0f, -1.0f, -1.0f, // triangle 1 : begin
-        -1.0f, -1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f, // triangle 1 : end
-        1.0f, 1.0f, -1.0f, // triangle 2 : begin
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f, -1.0f, // triangle 2 : end
-        1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, -1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, -1.0f,
-        -1.0f, 1.0f, -1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, -1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 1.0f
-    };
-
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
     GLuint textureID;
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    GLuint Texture =  loadDDS("../tutorial05_textured_cube/uvtemplate.DDS");
+    GLuint Texture =  loadDDS("../tutorial07_model_loading/uvmap.DDS");
     GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
-    static const GLfloat g_uv_buffer_data[] =
-    {
-        0.000059f, 0.000004f,
-        0.000103f, 0.336048f,
-        0.335973f, 0.335903f,
-        1.000023f, 0.000013f,
-        0.667979f, 0.335851f,
-        0.999958f, 0.336064f,
-        0.667979f, 0.335851f,
-        0.336024f, 0.671877f,
-        0.667969f, 0.671889f,
-        1.000023f, 0.000013f,
-        0.668104f, 0.000013f,
-        0.667979f, 0.335851f,
-        0.000059f, 0.000004f,
-        0.335973f, 0.335903f,
-        0.336098f, 0.000071f,
-        0.667979f, 0.335851f,
-        0.335973f, 0.335903f,
-        0.336024f, 0.671877f,
-        1.000004f, 0.671847f,
-        0.999958f, 0.336064f,
-        0.667979f, 0.335851f,
-        0.668104f, 0.000013f,
-        0.335973f, 0.335903f,
-        0.667979f, 0.335851f,
-        0.335973f, 0.335903f,
-        0.668104f, 0.000013f,
-        0.336098f, 0.000071f,
-        0.000103f, 0.336048f,
-        0.000004f, 0.671870f,
-        0.336024f, 0.671877f,
-        0.000103f, 0.336048f,
-        0.336024f, 0.671877f,
-        0.335973f, 0.335903f,
-        0.667969f, 0.671889f,
-        1.000004f, 0.671847f,
-        0.667979f, 0.335851f
-    };
+    // Read our .obj file
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec2> uvs;
+    std::vector<glm::vec3> normals; // Won't be used at the moment.
+    bool res = loadOBJ("../tutorial07_model_loading/cube.obj", vertices, uvs, normals);
+
+    GLuint vertexbuffer;
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+
     GLuint uvbuffer;
     glGenBuffers(1, &uvbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 
     do
     {
