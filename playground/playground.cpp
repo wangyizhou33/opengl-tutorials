@@ -13,6 +13,7 @@ using namespace glm;
 
 #include <common/shader.hpp>
 #include <common/texture.hpp>
+#include <common/controls.hpp>
 
 int main(void)
 {
@@ -55,6 +56,11 @@ int main(void)
 
     // Ensure we can capture the escape key being pressed below
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    // Set the mouse at the center of the screen
+    glfwPollEvents();
+    glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 
     // Dark blue background
     glClearColor(0.0f, 0.0f, 0.3f, 0.0f);
@@ -67,8 +73,10 @@ int main(void)
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
 
-    GLuint programID = LoadShaders("../tutorial05_textured_cube/TransformVertexShader.vertexshader",
-                                   "../tutorial05_textured_cube/TextureFragmentShader.fragmentshader");
+    GLuint programID =
+        LoadShaders("../tutorial06_keyboard_and_mouse/TransformVertexShader.vertexshader",
+                    "../tutorial06_keyboard_and_mouse/TextureFragmentShader.fragmentshader");
+
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
     static const GLfloat g_vertex_buffer_data[] =
@@ -115,23 +123,6 @@ int main(void)
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-
-    glm::mat4 projection = glm::perspective(
-                               45.0f,
-                               4.0f / 3.0f,
-                               0.1f,
-                               100.0f
-                           );
-
-    glm::mat4 view = glm::lookAt(
-                         glm::vec3(4, 3, 3),
-                         glm::vec3(0, 0, 0),
-                         glm::vec3(0, 1, 0)
-                     );
-
-    glm::mat4 model = glm::mat4(1.0f);
-
-    glm::mat4 MVP = projection * view * model;
 
     GLuint textureID;
     glBindTexture(GL_TEXTURE_2D, textureID);
@@ -188,6 +179,13 @@ int main(void)
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(programID);
+
+        // Compute the MVP matrix from keyboard and mouse input
+        computeMatricesFromInputs();
+        glm::mat4 ProjectionMatrix = getProjectionMatrix();
+        glm::mat4 ViewMatrix = getViewMatrix();
+        glm::mat4 ModelMatrix = glm::mat4(1.0);
+        glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
