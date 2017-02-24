@@ -76,23 +76,21 @@ int main(void)
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
 
-    GLuint programID =
-        LoadShaders("../tutorial07_model_loading/TransformVertexShader.vertexshader",
-                    "../tutorial07_model_loading/TextureFragmentShader.fragmentshader");
-
+    // Create and compile our GLSL program from the shaders
+    GLuint programID = LoadShaders("../tutorial08_basic_shading/StandardShading.vertexshader",
+                                   "../tutorial08_basic_shading/StandardShading.fragmentshader");
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+    GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
+    GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
 
-    GLuint textureID;
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    GLuint Texture =  loadDDS("../tutorial07_model_loading/uvmap.DDS");
+    GLuint Texture = loadDDS("../tutorial08_basic_shading/uvmap.DDS");
     GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
     // Read our .obj file
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals; // Won't be used at the moment.
-    bool res = loadOBJ("../tutorial07_model_loading/cube.obj", vertices, uvs, normals);
+    bool res = loadOBJ("../tutorial08_basic_shading/suzanne.obj", vertices, uvs, normals);
 
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
@@ -103,6 +101,15 @@ int main(void)
     glGenBuffers(1, &uvbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
     glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+
+    GLuint normalbuffer;
+    glGenBuffers(1, &normalbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+
+    // Get a handle for our "LightPosition" uniform
+    glUseProgram(programID);
+    GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 
     do
     {
@@ -118,6 +125,11 @@ int main(void)
         glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
+        glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
+
+        glm::vec3 lightPos = glm::vec3(4, 4, 4);
+        glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Texture);
@@ -145,9 +157,22 @@ int main(void)
             (void*)0                          // array buffer offset
         );
 
-        glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
+        // 3rd attribute buffer : normals
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+        glVertexAttribPointer(
+            2,                                // attribute
+            3,                                // size
+            GL_FLOAT,                         // type
+            GL_FALSE,                         // normalized?
+            0,                                // stride
+            (void*)0                          // array buffer offset
+        );
+
+        glDrawArrays(GL_TRIANGLES, 0, vertices.size());
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -160,6 +185,7 @@ int main(void)
     // Cleanup VBO and shader
     glDeleteBuffers(1, &vertexbuffer);
     glDeleteBuffers(1, &uvbuffer);
+    glDeleteBuffers(1, &normalbuffer);
     glDeleteProgram(programID);
     glDeleteTextures(1, &TextureID);
     glDeleteVertexArrays(1, &VertexArrayID);
