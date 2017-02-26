@@ -67,8 +67,8 @@ int main(void)
     glBindVertexArray(VertexArrayID);
 
     // Create and compile our GLSL program from the shaders
-    GLuint programID = LoadShaders("TransformVertexShader.vertexshader",
-                                   "TextureFragmentShader.fragmentshader");
+    GLuint programID = LoadShaders("../tutorial05_textured_cube/TransformVertexShader.vertexshader",
+                                   "../tutorial05_textured_cube/TextureFragmentShader.fragmentshader");
 
     // Get a handle for our "MVP" uniform
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
@@ -89,7 +89,7 @@ int main(void)
 
     // Load the texture using any two methods
     //GLuint Texture = loadBMP_custom("uvtemplate.bmp");
-    GLuint Texture = loadDDS("uvtemplate.DDS");
+    GLuint Texture = loadDDS("../tutorial05_textured_cube/uvtemplate.DDS");
 
     // Get a handle for our "myTextureSampler" uniform
     GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
