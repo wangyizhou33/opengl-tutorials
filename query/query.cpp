@@ -17,6 +17,9 @@ using namespace glm;
 
 #include <iostream>
 
+constexpr uint32_t WIN_W = 800;
+constexpr uint32_t WIN_H = 800;
+
 int main(void)
 {
     // Initialise GLFW
@@ -34,7 +37,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
-    window = glfwCreateWindow(800, 800, "Query", NULL, NULL);
+    window = glfwCreateWindow(WIN_W, WIN_H, "Query", NULL, NULL);
     if (window == NULL)
     {
         fprintf(stderr,
@@ -124,10 +127,45 @@ int main(void)
     glGenQueries(1, &queryIntersection);
     GLuint intersectionPixelCount = 0;
 
-    do
+    // create a framebuffer and bind
+    unsigned int fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);  
+
+    // color texture attachment
+    unsigned int colorTexture;
+    glGenTextures(1, &colorTexture);
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIN_W, WIN_H, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);  
+
+    // depth texture attachment
+    unsigned int depthTexture;
+    glGenTextures(1, &depthTexture);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, WIN_W, WIN_H, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);  
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Framebuffer is completed." << std::endl;
+    }
+    else
+    {
+        throw std::runtime_error("incomplete framebuffer\n");
+    }
+
     {
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_STENCIL_BUFFER_BIT);
+        glClear(GL_DEPTH_BUFFER_BIT);
 
         // Use our shader
         glUseProgram(programID);
@@ -232,7 +270,23 @@ int main(void)
                                 &intersectionPixelCount);
             std::cout << "area pixel count " << totalAreaPixelCount
                       << ", intersection pixel count " << intersectionPixelCount << std::endl;
+            std::cout << "ratio is: " << totalAreaPixelCount / intersectionPixelCount << " : 1" << std::endl; 
         }
+    }
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo); // redundant. fbo is already the read framebuffer
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // set screen as the draw framebuffer
+
+    do
+    {
+        // Clear the screen
+        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_STENCIL_BUFFER_BIT);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        glBlitFramebuffer(0, 0, WIN_W, WIN_H,
+                          0, 0, WIN_W, WIN_H,
+                          GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -253,6 +307,10 @@ int main(void)
 
     glDeleteQueries(1, &queryTotal);
     glDeleteQueries(1, &queryIntersection);
+
+    glDeleteTextures(1, &colorTexture);
+    glDeleteTextures(1, &depthTexture);
+    glDeleteFramebuffers(1, &fbo);  
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
