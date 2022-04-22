@@ -656,17 +656,12 @@ create_target_launcher(tutorial18_particles WORKING_DIRECTORY "${CMAKE_CURRENT_S
 # Query
 add_executable(query
 	query/query.cpp
-	common/shader.cpp
-	common/shader.hpp
-	common/controls.cpp
-	common/controls.hpp
-	common/texture.cpp
-	common/texture.hpp
-	common/objloader.cpp
-	common/objloader.hpp
-	
 	query/SimpleVertexShader.vertexshader
 	query/SimpleFragmentShader.fragmentshader
+	query/ObjectInPathAnalyzer.hpp
+	query/ObjectInPathAnalyzer.cpp
+	common/shader.cpp
+	common/shader.hpp
 )
 target_link_libraries(query
 	${ALL_LIBS}

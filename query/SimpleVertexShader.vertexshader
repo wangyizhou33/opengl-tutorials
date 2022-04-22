@@ -10,7 +10,7 @@ out vec4 fragmentColor;
 
 void main(){
 
-    gl_Position.xyz = vertexPosition_modelspace;
+    gl_Position.xyz = vertexPosition_modelspace * 0.1f;
     gl_Position.w = 1.0;
 
 	// The color of each vertex will be interpolated

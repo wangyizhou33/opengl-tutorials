@@ -17,6 +17,8 @@ using namespace glm;
 
 #include <iostream>
 
+#include "ObjectInPathAnalyzer.hpp"
+
 constexpr uint32_t WIN_W = 800;
 constexpr uint32_t WIN_H = 800;
 
@@ -61,220 +63,11 @@ int main(void)
     // Ensure we can capture the escape key being pressed below
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
-    // Dark blue background
-    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 
-    GLuint VertexArrayID;
-    glGenVertexArrays(1, &VertexArrayID);
-    glBindVertexArray(VertexArrayID);
+    ObjectInPathAnalyzer oipa{};
+    oipa.process();
 
-    // Create and compile our GLSL program from the shaders
-    GLuint programID = LoadShaders("../query/SimpleVertexShader.vertexshader",
-                                   "../query/SimpleFragmentShader.fragmentshader");
-
-
-    static const GLfloat g_vertex_buffer_data[] =
-    {
-        -0.5f, -0.5f, 0.0f,     // first object
-        -0.5f, 0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.5f, 0.5f, 0.0f,
-        -0.25f + 0.5f, -0.25f, 0.0f,   // second object
-        -0.25f + 0.5f, 0.25f, 0.0f,
-         0.25f + 0.5f, -0.25f, 0.0f,
-         0.25f + 0.5f, 0.25f, 0.0f,
-    };
-    
-    static const GLfloat g_color_buffer_data[] =
-    {
-        0.0f, 1.0f, 0.0f, 0.5f,   // first object
-        0.0f, 1.0f, 0.0f, 0.5f,
-        0.0f, 1.0f, 0.0f, 0.5f,
-        0.0f, 1.0f, 0.0f, 0.5f,
-        0.0f, 0.0f, 1.0f, 0.5f,   // second object
-        0.0f, 0.0f, 1.0f, 0.5f,
-        0.0f, 0.0f, 1.0f, 0.5f,
-        0.0f, 0.0f, 1.0f, 0.5f,
-    };
-
-    GLuint vertexbuffer0;
-    glGenBuffers(1, &vertexbuffer0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer0);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data) / 2, g_vertex_buffer_data, GL_STATIC_DRAW);
-
-    GLuint colorbuffer0;
-    glGenBuffers(1, &colorbuffer0);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer0);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data) / 2, g_color_buffer_data, GL_STATIC_DRAW);
-
-    GLuint vertexbuffer1;
-    glGenBuffers(1, &vertexbuffer1);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer1);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data) / 2, &g_vertex_buffer_data[4 * 3], GL_STATIC_DRAW);
-
-    GLuint colorbuffer1;
-    glGenBuffers(1, &colorbuffer1);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer1);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data) / 2, &g_color_buffer_data[4 * 4], GL_STATIC_DRAW);
-
-
-    GLuint queryTotal;
-    glGenQueries(1, &queryTotal);
-    GLuint totalAreaPixelCount = 0;
-
-
-    GLuint queryIntersection;
-    glGenQueries(1, &queryIntersection);
-    GLuint intersectionPixelCount = 0;
-
-    // create a framebuffer and bind
-    unsigned int fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);  
-
-    // color texture attachment
-    unsigned int colorTexture;
-    glGenTextures(1, &colorTexture);
-    glBindTexture(GL_TEXTURE_2D, colorTexture);
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIN_W, WIN_H, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);  
-
-    // depth texture attachment
-    unsigned int depthTexture;
-    glGenTextures(1, &depthTexture);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, WIN_W, WIN_H, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);  
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cout << "Framebuffer is completed." << std::endl;
-    }
-    else
-    {
-        throw std::runtime_error("incomplete framebuffer\n");
-    }
-
-    {
-        // Clear the screen
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClear(GL_STENCIL_BUFFER_BIT);
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        // Use our shader
-        glUseProgram(programID);
-
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glEnable(GL_SCISSOR_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // only visual effect
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_STENCIL_TEST);
-        glDepthMask(GL_FALSE);
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-        // draw the first object
-        {
-            // prepare test 
-            glStencilMask(0xFF);
-            glStencilFunc(GL_ALWAYS, 1, 0xFF);
-            glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            glStencilOp(GL_ZERO, GL_REPLACE, GL_REPLACE);
-
-            // 1rst attribute buffer : vertices
-            glEnableVertexAttribArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer0);
-            glVertexAttribPointer(
-                0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-                3,                  // size
-                GL_FLOAT,           // type
-                GL_FALSE,           // normalized?
-                0,                  // stride
-                (void*)0            // array buffer offset
-            );
-
-            // 2nd attribute buffer : colors
-            glEnableVertexAttribArray(1);
-            glBindBuffer(GL_ARRAY_BUFFER, colorbuffer0);
-            glVertexAttribPointer(
-                1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-                4,                                // size
-                GL_FLOAT,                         // type
-                GL_FALSE,                         // normalized?
-                0,                                // stride
-                (void*)0                          // array buffer offset
-            );
-
-            glBeginQuery(GL_SAMPLES_PASSED, queryTotal);
-            // Draw the triangle !
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // 3 indices starting at 0 -> 1 triangle
-
-            glEndQuery(GL_SAMPLES_PASSED);
-
-            glDisableVertexAttribArray(0);
-            glDisableVertexAttribArray(1);
-        }
-        // draw the second object
-        {
-            glStencilFunc(GL_EQUAL, 1, 0xFF);
-            glStencilMask(0x00);
-
-            // 1rst attribute buffer : vertices
-            glEnableVertexAttribArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer1);
-            glVertexAttribPointer(
-                0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-                3,                  // size
-                GL_FLOAT,           // type
-                GL_FALSE,           // normalized?
-                0,                  // stride
-                (void*)0            // array buffer offset
-            );
-
-            // 2nd attribute buffer : colors
-            glEnableVertexAttribArray(1);
-            glBindBuffer(GL_ARRAY_BUFFER, colorbuffer1);
-            glVertexAttribPointer(
-                1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-                4,                                // size
-                GL_FLOAT,                         // type
-                GL_FALSE,                         // normalized?
-                0,                                // stride
-                (void*)0                          // array buffer offset
-            );
-
-            glBeginQuery(GL_SAMPLES_PASSED, queryIntersection);
-            // Draw the triangle !
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // 3 indices starting at 0 -> 1 triangle
-
-            glEndQuery(GL_SAMPLES_PASSED);
-
-            glDisableVertexAttribArray(0);
-            glDisableVertexAttribArray(1);
-        }
-
-        GLboolean isValidQuery = glIsQuery(queryTotal) && glIsQuery(queryIntersection);
-        if (isValidQuery)
-        {
-            glGetQueryObjectuiv(queryTotal,
-                                GL_QUERY_RESULT,
-                                &totalAreaPixelCount);
-            glGetQueryObjectuiv(queryIntersection,
-                                GL_QUERY_RESULT,
-                                &intersectionPixelCount);
-            std::cout << "area pixel count " << totalAreaPixelCount
-                      << ", intersection pixel count " << intersectionPixelCount << std::endl;
-            std::cout << "ratio is: " << totalAreaPixelCount / intersectionPixelCount << " : 1" << std::endl; 
-        }
-    }
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo); // redundant. fbo is already the read framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, oipa.getFramebuffer()); // redundant. fbo is already the read framebuffer
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // set screen as the draw framebuffer
 
     do
@@ -295,22 +88,6 @@ int main(void)
     } // Check if the ESC key was pressed or the window was closed
     while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
             glfwWindowShouldClose(window) == 0);
-
-    // Cleanup VBO
-    glDeleteBuffers(1, &vertexbuffer0);
-    glDeleteBuffers(1, &colorbuffer0);
-    glDeleteBuffers(1, &vertexbuffer1);
-    glDeleteBuffers(1, &colorbuffer1);
-
-    glDeleteVertexArrays(1, &VertexArrayID);
-    glDeleteProgram(programID);
-
-    glDeleteQueries(1, &queryTotal);
-    glDeleteQueries(1, &queryIntersection);
-
-    glDeleteTextures(1, &colorTexture);
-    glDeleteTextures(1, &depthTexture);
-    glDeleteFramebuffers(1, &fbo);  
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
