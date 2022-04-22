@@ -62,7 +62,7 @@ int main(void)
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
     // Dark blue background
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
@@ -87,14 +87,14 @@ int main(void)
     
     static const GLfloat g_color_buffer_data[] =
     {
-        0.0f, 1.0f, 0.0f,   // first object
-        0.0f, 1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,   // second object
-        0.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, 0.5f,   // first object
+        0.0f, 1.0f, 0.0f, 0.5f,
+        0.0f, 1.0f, 0.0f, 0.5f,
+        0.0f, 1.0f, 0.0f, 0.5f,
+        0.0f, 0.0f, 1.0f, 0.5f,   // second object
+        0.0f, 0.0f, 1.0f, 0.5f,
+        0.0f, 0.0f, 1.0f, 0.5f,
+        0.0f, 0.0f, 1.0f, 0.5f,
     };
 
     GLuint vertexbuffer0;
@@ -115,7 +115,7 @@ int main(void)
     GLuint colorbuffer1;
     glGenBuffers(1, &colorbuffer1);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer1);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data) / 2, &g_color_buffer_data[4 * 3], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data) / 2, &g_color_buffer_data[4 * 4], GL_STATIC_DRAW);
 
 
     GLuint queryTotal;
@@ -173,7 +173,7 @@ int main(void)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glEnable(GL_SCISSOR_TEST);
         glEnable(GL_BLEND);
-        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // only visual effect
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // only visual effect
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_STENCIL_TEST);
         glDepthMask(GL_FALSE);
@@ -204,7 +204,7 @@ int main(void)
             glBindBuffer(GL_ARRAY_BUFFER, colorbuffer0);
             glVertexAttribPointer(
                 1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-                3,                                // size
+                4,                                // size
                 GL_FLOAT,                         // type
                 GL_FALSE,                         // normalized?
                 0,                                // stride
@@ -242,7 +242,7 @@ int main(void)
             glBindBuffer(GL_ARRAY_BUFFER, colorbuffer1);
             glVertexAttribPointer(
                 1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-                3,                                // size
+                4,                                // size
                 GL_FLOAT,                         // type
                 GL_FALSE,                         // normalized?
                 0,                                // stride
