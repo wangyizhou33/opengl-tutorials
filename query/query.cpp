@@ -22,46 +22,57 @@ using namespace glm;
 constexpr uint32_t WIN_W = 800;
 constexpr uint32_t WIN_H = 800;
 
+constexpr bool render = true;
+
 int main(void)
 {
-    // Initialise GLFW
-    if (!glfwInit())
     {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        getchar();
-        return -1;
+        // Initialise GLFW
+        if (!glfwInit())
+        {
+            fprintf(stderr, "Failed to initialize GLFW\n");
+            getchar();
+            return -1;
+        }
+
+        glfwWindowHint(GLFW_SAMPLES, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        // Open a window and create its OpenGL context
+        if (!render)
+        {
+            std::cout << "hide window" << std::endl;
+            glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+        }
+        window = glfwCreateWindow(WIN_W, WIN_H, "Query", NULL, NULL);
+
+        if (window == NULL)
+        {
+            fprintf(stderr,
+                    "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
+            getchar();
+            glfwTerminate();
+            return -1;
+        }
+        glfwMakeContextCurrent(window);
+
+        // Initialize GLEW
+        glewExperimental = true; // Needed for core profile
+        if (glewInit() != GLEW_OK)
+        {
+            fprintf(stderr, "Failed to initialize GLEW\n");
+            getchar();
+            glfwTerminate();
+            return -1;
+        }
+
+        // Ensure we can capture the escape key being pressed below
+        glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     }
 
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    // Open a window and create its OpenGL context
-    window = glfwCreateWindow(WIN_W, WIN_H, "Query", NULL, NULL);
-    if (window == NULL)
-    {
-        fprintf(stderr,
-                "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
-        getchar();
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-    // Initialize GLEW
-    glewExperimental = true; // Needed for core profile
-    if (glewInit() != GLEW_OK)
-    {
-        fprintf(stderr, "Failed to initialize GLEW\n");
-        getchar();
-        glfwTerminate();
-        return -1;
-    }
-
-    // Ensure we can capture the escape key being pressed below
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
     LaneData lane0{}; // lane #0
     LaneData lane1{}; // lane #1
@@ -106,7 +117,6 @@ int main(void)
     obs2.boundaryPoints.push_back(Point3f{.x = 15.0f, .y = 4.0f, .z = 0.0f});
     obs2.boundaryPoints.push_back(Point3f{.x = 15.0f, .y = 5.5f, .z = 0.0f});
 
-
     ObjectInPathAnalyzer oipa{};
     // oipa.process();
     oipa.process(std::vector<LaneData>({lane0, lane1, lane2}), 
@@ -115,7 +125,10 @@ int main(void)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, oipa.getFramebuffer()); // redundant. fbo is already the read framebuffer
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // set screen as the draw framebuffer
 
-    do
+    // Check if the ESC key was pressed or the window was closed
+    while (glfwGetWindowAttrib(window, GLFW_VISIBLE) &&
+           glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+           glfwWindowShouldClose(window) == 0)
     {
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
@@ -130,9 +143,7 @@ int main(void)
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-    } // Check if the ESC key was pressed or the window was closed
-    while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-            glfwWindowShouldClose(window) == 0);
+    }
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
