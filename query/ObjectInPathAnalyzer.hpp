@@ -6,6 +6,72 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <GL/glew.h>
+#include <vector>
+
+using float32_t = float;
+using float64_t = double;
+template<typename T>
+struct Point3
+{
+    T x{0.0};
+    T y{0.0};
+    T z{0.0};
+};
+
+struct RGBColor
+{
+    float32_t r;
+    float32_t g;
+    float32_t b;
+};
+
+constexpr RGBColor GREEN = {.r = 0.0f, .g = 1.0f, .b = 0.0f};
+constexpr RGBColor RED = {.r = 1.0f, .g = 0.0f, .b = 0.0f};
+constexpr RGBColor BLUE = {.r = 0.0f, .g = 0.0f, .b = 1.0f};
+constexpr RGBColor YELLOW = {.r = 1.0f, .g = 1.0f, .b = 0.0f};
+constexpr RGBColor PURPLE = {.r = 1.0f, .g = 0.0f, .b = 1.0f};
+constexpr RGBColor CYAN = {.r = 0.0f, .g = 1.0f, .b = 1.0f};
+
+static const RGBColor COLOR_SET[] = 
+{
+    GREEN,
+    RED,
+    BLUE,
+    YELLOW,
+    PURPLE,
+    CYAN
+};
+
+using Point3f = Point3<float32_t>;
+using Point3d = Point3<float64_t>;
+
+struct LaneData
+{
+    std::vector<Point3f> leftDiv;
+    std::vector<Point3f> rightDiv;  // assume left and right dividers have the same size
+    uint32_t id;    // assume each lane has a unique id
+};
+
+struct ObstacleData
+{
+    std::vector<Point3f> boundaryPoints{};  // assume 4 vertices. 0-1-2 and 1-2-3 form 2 triangles which cover the total area
+    uint32_t id;    // assume each obstacle has a unique id
+};
+
+struct FreespaceData
+{
+
+};
+
+// output data type
+struct LaneAssignmentData
+{
+    uint32_t obstacleId;
+    std::vector<uint32_t> laneIds;
+    std::vector<uint32_t> intersectionPixelCounts;
+    uint32_t obstacleTotalPixelCount;
+    std::vector<GLfloat> obstacleVertexData{};
+};
 
 class ObjectInPathAnalyzer
 {
@@ -16,8 +82,13 @@ public:
     // [optional] get the framebuffer to be renderred in a glfw window, for debugging purpose
     unsigned int getFramebuffer() const {return fbo_;};
 
-    // main function
+    // illustration
     void process(); 
+
+    // process lane assignment
+    void process(const std::vector<LaneData>& lanes, const std::vector<ObstacleData>& obstacles);
+
+    void process(const FreespaceData& freespace);
 
 private:
     /**** framebuffer ****/
@@ -40,6 +111,10 @@ private:
     GLuint programID_;
     void loadShaders();
 
+    // clear all GL settings
+    // call at the begining of each process function call
+    void resetGLSettings();
+
     /**** background data ****/
     // background is lane data for driving
     //               freespace minus obstacle for parking
@@ -59,6 +134,22 @@ private:
 
     // for demonstration purpose
     void mockData();
+
+    /**** result ****/
+    std::vector<LaneAssignmentData> outputData_{};
+
+    // assume that obs has 4 vertices. 0-1-2 and 1-2-3 form 2 triangles which cover the total area
+    std::vector<GLfloat> trivialObstacleTriangulation(const ObstacleData& obs);
+
+    uint32_t renderObstacle(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData);
+
+    // assume left and right dividers have the same size
+    std::vector<GLfloat> trivialLaneTriangulation(const LaneData& lane);
+
+    void renderLane(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData);
+
+    uint32_t currColor = 0;
+    RGBColor getNextColor();
 
 }; // class ObjectInPathAnalyzer
 

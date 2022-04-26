@@ -63,9 +63,54 @@ int main(void)
     // Ensure we can capture the escape key being pressed below
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
+    LaneData lane0{}; // lane #0
+    LaneData lane1{}; // lane #1
+    LaneData lane2{}; // lane #1
+    lane0.id = 0u;
+    lane1.id = 1u; 
+    lane2.id = 2u; 
+
+    for (float32_t x = -10.0f; x < 100.0f; x += 5.0f)
+    {
+        lane0.leftDiv.push_back(Point3f{.x = x, .y = 3.0f, .z = 0.0f});
+        lane0.rightDiv.push_back(Point3f{.x = x, .y = 1.0f, .z = 0.0f});
+        lane1.leftDiv.push_back(Point3f{.x = x, .y = -1.0f, .z = 0.0f});
+        lane1.rightDiv.push_back(Point3f{.x = x, .y = 1.0f, .z = 0.0f});
+        lane2.leftDiv.push_back(Point3f{.x = x, .y = -1.0f, .z = 0.0f});
+        lane2.rightDiv.push_back(Point3f{.x = x, .y = -3.0f, .z = 0.0f});
+
+    }
+
+    ObstacleData obs0{}; // obstacle#0
+    ObstacleData obs1{}; // obstacle#1
+    ObstacleData obs2{}; // obstacle#1
+    obs0.id = 0u;
+    obs1.id = 1u;
+    obs2.id = 2u;
+
+    // obs0 fully in lane1
+    obs0.boundaryPoints.push_back(Point3f{.x = 20.0f, .y = -0.75f, .z = 0.0f});
+    obs0.boundaryPoints.push_back(Point3f{.x = 20.0f, .y = 0.75f, .z = 0.0f});
+    obs0.boundaryPoints.push_back(Point3f{.x = 25.0f, .y = -0.75f, .z = 0.0f});
+    obs0.boundaryPoints.push_back(Point3f{.x = 25.0f, .y = 0.75f, .z = 0.0f});
+
+    // obs1 partially in lane0
+    obs1.boundaryPoints.push_back(Point3f{.x = 20.0f, .y = 2.0f, .z = 0.0f});
+    obs1.boundaryPoints.push_back(Point3f{.x = 20.0f, .y = 4.0f, .z = 0.0f});
+    obs1.boundaryPoints.push_back(Point3f{.x = 25.0f, .y = 2.0f, .z = 0.0f});
+    obs1.boundaryPoints.push_back(Point3f{.x = 25.0f, .y = 4.0f, .z = 0.0f});
+
+    // obs2 not assigned
+    obs2.boundaryPoints.push_back(Point3f{.x = 10.0f, .y = 4.0f, .z = 0.0f});
+    obs2.boundaryPoints.push_back(Point3f{.x = 10.0f, .y = 5.5f, .z = 0.0f});
+    obs2.boundaryPoints.push_back(Point3f{.x = 15.0f, .y = 4.0f, .z = 0.0f});
+    obs2.boundaryPoints.push_back(Point3f{.x = 15.0f, .y = 5.5f, .z = 0.0f});
+
 
     ObjectInPathAnalyzer oipa{};
-    oipa.process();
+    // oipa.process();
+    oipa.process(std::vector<LaneData>({lane0, lane1, lane2}), 
+                 std::vector<ObstacleData>({obs0, obs1, obs2}));
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, oipa.getFramebuffer()); // redundant. fbo is already the read framebuffer
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // set screen as the draw framebuffer
