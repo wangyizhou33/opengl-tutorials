@@ -88,7 +88,6 @@ int main(void)
         glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     }
 
-
     LaneData lane0{}; // lane #0
     LaneData lane1{}; // lane #1
     LaneData lane2{}; // lane #1

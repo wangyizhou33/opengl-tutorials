@@ -4,6 +4,27 @@
 #include <algorithm> // std::copy
 #include <cmath> // std::sin std::cos
 
+
+#define S1(x) #x
+#define S2(x) S1(x)
+#define __SLINE__ S2(__LINE__)
+
+void checkGLError(const char* file, const char* line)
+{
+    GLenum glErr = glGetError();
+    if (glErr != GL_NO_ERROR)
+    {
+        std::cout << reinterpret_cast<const char*>(gluErrorString(glErr)) 
+                  << " in " << file << " " << line << std::endl;
+    }
+}
+
+#define CHECK_GL_ERROR(X)                           \
+    {                                               \
+        X;                                          \
+        checkGLError(__FILE__, __SLINE__); \
+    }
+
 ObjectInPathAnalyzer::ObjectInPathAnalyzer()
 {
     createFramebuffer();
@@ -14,7 +35,7 @@ ObjectInPathAnalyzer::~ObjectInPathAnalyzer()
 {
     releaseFramebuffer();
 
-    glDeleteProgram(programID_);
+    CHECK_GL_ERROR(glDeleteProgram(programID_));
 
 }
 
@@ -231,14 +252,14 @@ void ObjectInPathAnalyzer::process(const FreespaceData& freespace,
 void ObjectInPathAnalyzer::createFramebuffer()
 {
     // bind a framebuffer
-    glGenFramebuffers(1, &fbo_);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo_);  
+    CHECK_GL_ERROR(glGenFramebuffers(1, &fbo_));
+    CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));  
 
     // color texture attachment
-    glGenTextures(1, &colorTexture_);
-    glBindTexture(GL_TEXTURE_2D, colorTexture_);
+    CHECK_GL_ERROR(glGenTextures(1, &colorTexture_));
+    CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, colorTexture_));
     
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIN_W, WIN_H, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    CHECK_GL_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIN_W, WIN_H, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  
