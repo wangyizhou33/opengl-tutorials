@@ -16,6 +16,7 @@ using namespace glm;
 #include <common/shader.hpp>
 
 #include <iostream>
+#include <chrono>
 
 #include "ObjectInPathAnalyzer.hpp"
 
@@ -23,6 +24,20 @@ constexpr uint32_t WIN_W = 800;
 constexpr uint32_t WIN_H = 800;
 
 constexpr bool render = true;
+
+constexpr bool DEBUG_PRINT_RESULTS = true;
+#define TIME_IT(name, a) \
+    if (DEBUG_PRINT_RESULTS) { \
+        auto start = std::chrono::high_resolution_clock::now(); \
+        a; \
+        auto elapsed = std::chrono::high_resolution_clock::now() - start; \
+        std::cout << name \
+                  << ": " \
+                  << std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count() \
+                     / 1000000.0f << " ms" << std::endl; \
+    } else { \
+        a; \
+    }
 
 int main(void)
 {
@@ -119,8 +134,41 @@ int main(void)
 
     ObjectInPathAnalyzer oipa{};
     // oipa.process();
-    oipa.process(std::vector<LaneData>({lane0, lane1, lane2}), 
-                 std::vector<ObstacleData>({obs0, obs1, obs2}));
+    // for (size_t cnt = 0u; cnt < 100u; ++cnt)
+    // {
+    //     TIME_IT("process lane assignment",
+    //         oipa.process(std::vector<LaneData>({lane0, lane1, lane2}), 
+    //                 std::vector<ObstacleData>({obs0, obs1, obs2}))
+    //     );
+    // }
+
+    // mock freespace
+    FreespaceData fs{};
+    for (uint32_t i = 0u; i < 181u; ++i)
+    {
+        float32_t theta = static_cast<float32_t>(i) * 2 * 3.141592f / 180.0f;
+
+        float32_t range{0.f};
+        if (i < 30u) range = 80.0f;
+        else if (i < 60u) range = 15.f;
+        else if (i < 90u) range = 50.f;
+        else if (i < 120u) range = 10.f;
+        else if (i < 150u) range = 20.f;
+        else range = 40.f;
+
+       fs.data.push_back(std::pair<float32_t, float32_t>(theta, range));
+    }
+
+    ObstacleData obs3{}; // obstacle#1
+    obs3.id = 3u;    
+    obs3.boundaryPoints.push_back(Point3f{.x = 0.0f, .y = 43.0f, .z = 0.0f});
+    obs3.boundaryPoints.push_back(Point3f{.x = 0.0f, .y = 45.0f, .z = 0.0f});
+    obs3.boundaryPoints.push_back(Point3f{.x = 5.0f, .y = 43.0f, .z = 0.0f});
+    obs3.boundaryPoints.push_back(Point3f{.x = 5.0f, .y = 45.0f, .z = 0.0f});
+
+    oipa.process(fs,
+                 std::vector<ObstacleData>({obs0, obs1}),
+                 std::vector<ObstacleData>({obs1, obs2, obs3}));
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, oipa.getFramebuffer()); // redundant. fbo is already the read framebuffer
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // set screen as the draw framebuffer

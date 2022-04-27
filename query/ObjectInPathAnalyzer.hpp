@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <GL/glew.h>
 #include <vector>
+#include <utility> // pair
 
 using float32_t = float;
 using float64_t = double;
@@ -60,7 +61,7 @@ struct ObstacleData
 
 struct FreespaceData
 {
-
+    std::vector<std::pair<float32_t, float32_t>> data;
 };
 
 // output data type
@@ -88,7 +89,9 @@ public:
     // process lane assignment
     void process(const std::vector<LaneData>& lanes, const std::vector<ObstacleData>& obstacles);
 
-    void process(const FreespaceData& freespace);
+    void process(const FreespaceData& freespace,
+                 const std::vector<ObstacleData>& obstacles,
+                 const std::vector<ObstacleData>& querys);
 
 private:
     /**** framebuffer ****/
@@ -138,6 +141,7 @@ private:
     /**** result ****/
     std::vector<LaneAssignmentData> outputData_{};
 
+    /**** render functions ****/
     // assume that obs has 4 vertices. 0-1-2 and 1-2-3 form 2 triangles which cover the total area
     std::vector<GLfloat> trivialObstacleTriangulation(const ObstacleData& obs);
 
@@ -147,6 +151,10 @@ private:
     std::vector<GLfloat> trivialLaneTriangulation(const LaneData& lane);
 
     void renderLane(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData);
+
+    std::vector<GLfloat> trivialFreespaceTriangulation(const FreespaceData& fs);
+
+    void renderFreespace(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData);
 
     uint32_t currColor = 0;
     RGBColor getNextColor();
