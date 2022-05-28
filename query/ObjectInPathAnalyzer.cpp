@@ -31,7 +31,6 @@ ObjectInPathAnalyzer::ObjectInPathAnalyzer()
     loadShaders();
 
     glGenBuffers(1, &vertexbuffer_);
-    glGenBuffers(1, &colorbuffer_);
 }
 
 ObjectInPathAnalyzer::~ObjectInPathAnalyzer()
@@ -40,7 +39,6 @@ ObjectInPathAnalyzer::~ObjectInPathAnalyzer()
 
 
     glDeleteBuffers(1, &vertexbuffer_);
-    glDeleteBuffers(1, &colorbuffer_);
 
     CHECK_GL_ERROR(glDeleteProgram(programID_));
 
@@ -102,16 +100,9 @@ void ObjectInPathAnalyzer::process(const std::vector<LaneData>& lanes,
 
         // gray obstacle rendering without stencil testing
         std::vector<GLfloat> obsVertexData = trivialObstacleTriangulation(obstacle);
-        std::vector<GLfloat> obsColorData{};
-        for (size_t i = 0u; i < 4u; ++i) // each obstacle has 4 vertices
-        {
-            obsColorData.push_back(0.0f); // r
-            obsColorData.push_back(0.0f); // g
-            obsColorData.push_back(0.0f); // b
-            obsColorData.push_back(0.5f); // a
-        }
-
-        uint32_t area = renderObstacle(obsVertexData, obsColorData); // obstacle total area
+        RGBAColor rgba{};
+        rgba.a = 0.5f;
+        uint32_t area = renderObstacle(obsVertexData, rgba); // obstacle total area
         last.obstacleTotalPixelCount = area;
     }
     glEnable(GL_STENCIL_TEST);
@@ -126,18 +117,11 @@ void ObjectInPathAnalyzer::process(const std::vector<LaneData>& lanes,
         glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         glStencilOp(GL_ZERO, GL_REPLACE, GL_REPLACE);
         std::vector<GLfloat> laneVertexData = trivialLaneTriangulation(lane);
-        std::vector<GLfloat> laneColorData{};
 
-        RGBColor color = getNextColor();
+        RGBColor rgb = getNextColor();
+        RGBAColor rgba(rgb, 0.3f);
 
-        for (size_t i = 0u; i < laneVertexData.size() / 3; ++i) // laneVertexData.size() is number of vertices
-        {
-            laneColorData.push_back(color.r); // r
-            laneColorData.push_back(color.g); // g
-            laneColorData.push_back(color.b); // b
-            laneColorData.push_back(0.3f);    // a
-        }
-        renderLane(laneVertexData, laneColorData);
+        renderLane(laneVertexData, rgba);
 
         // enable stencil testing
         glStencilFunc(GL_EQUAL, 1, 0xFF);
@@ -146,18 +130,9 @@ void ObjectInPathAnalyzer::process(const std::vector<LaneData>& lanes,
         for (size_t i = 0u; i < obstacles.size(); ++i)
         {
             const std::vector<GLfloat> obsVertexData = outputData_.at(i).obstacleVertexData;
+            rgba.a = 0.9f;
 
-            // use an opaque color for the obstacle
-            std::vector<GLfloat> obsColorData{};
-            for (size_t i = 0u; i < obsVertexData.size() / 3; ++i)
-            {
-                obsColorData.push_back(color.r); // r
-                obsColorData.push_back(color.g); // g
-                obsColorData.push_back(color.b); // b
-                obsColorData.push_back(0.9f);    // a
-            }
-
-            uint32_t intersectionArea = renderObstacle(obsVertexData, obsColorData);
+            uint32_t intersectionArea = renderObstacle(obsVertexData, rgba);
 
             // push back (non-trivial) result to the output container
             if (intersectionArea > 0)
@@ -201,15 +176,9 @@ void ObjectInPathAnalyzer::process(const FreespaceData& freespace,
     glStencilOp(GL_ZERO, GL_REPLACE, GL_REPLACE);
 
     std::vector<GLfloat> fsVertexData = trivialFreespaceTriangulation(freespace);
-    std::vector<GLfloat> fsColorData{};
-    for (size_t i = 0u; i < fsVertexData.size() / 3; ++i)
-    {
-        fsColorData.push_back(0.0f); // r
-        fsColorData.push_back(0.0f); // g
-        fsColorData.push_back(0.0f); // b
-        fsColorData.push_back(0.3f); // a
-    }
-    renderFreespace(fsVertexData, fsColorData);
+    RGBAColor fsColor{};
+    fsColor.a = 0.3f;
+    renderFreespace(fsVertexData, fsColor);
 
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_ZERO, GL_REPLACE, GL_ZERO);
@@ -218,16 +187,10 @@ void ObjectInPathAnalyzer::process(const FreespaceData& freespace,
     {
         // gray obstacle rendering without stencil testing
         std::vector<GLfloat> obsVertexData = trivialObstacleTriangulation(obstacle);
-        std::vector<GLfloat> obsColorData{};
-        for (size_t i = 0u; i < 4u; ++i) // each obstacle has 4 vertices
-        {
-            obsColorData.push_back(1.0f); // r
-            obsColorData.push_back(1.0f); // g
-            obsColorData.push_back(1.0f); // b
-            obsColorData.push_back(5.0f); // a
-        }
+        RGBAColor rgba{};
+        rgba.a = 0.5f;
 
-        renderObstacle(obsVertexData, obsColorData); // obstacle total area
+        renderObstacle(obsVertexData, rgba); // obstacle total area
     }
 
     glStencilMask(0x00);
@@ -236,16 +199,12 @@ void ObjectInPathAnalyzer::process(const FreespaceData& freespace,
     {
         // gray obstacle rendering without stencil testing
         std::vector<GLfloat> queryVertexData = trivialObstacleTriangulation(query);
+        RGBAColor queryColor{};
+        queryColor.r = 1.0f;
+        queryColor.a = 0.7f;
         std::vector<GLfloat> queryColorData{};
-        for (size_t i = 0u; i < 4u; ++i) // each obstacle has 4 vertices
-        {
-            queryColorData.push_back(1.0f); // r
-            queryColorData.push_back(0.0f); // g
-            queryColorData.push_back(0.0f); // b
-            queryColorData.push_back(0.7f); // a
-        }
 
-        uint32_t area = renderObstacle(queryVertexData, queryColorData); // obstacle total area
+        uint32_t area = renderObstacle(queryVertexData, queryColor); // obstacle total area
         if (area > 0)
         {
             std::cout << "collision happened" << std::endl;
@@ -330,23 +289,16 @@ void ObjectInPathAnalyzer::renderBackground()
     glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glStencilOp(GL_ZERO, GL_REPLACE, GL_REPLACE);
 
+    RGBAColor color{};
+    color.g = 1.0f;
+    color.a = 0.5f;
+    auto uColor = glGetUniformLocation(programID_, "colorIn");
+    glUniform4fv(uColor, 1, reinterpret_cast<float32_t*>(&color));
+
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, bgSize_ * 3 * sizeof(GLfloat), bgData_, GL_STATIC_DRAW);
-
-    static const GLfloat colorBufferData[] =
-    {
-        0.0f, 1.0f, 0.0f, 0.5f,
-        0.0f, 1.0f, 0.0f, 0.5f,
-        0.0f, 1.0f, 0.0f, 0.5f,
-        0.0f, 1.0f, 0.0f, 0.5f,
-    };
-
-    GLuint colorbuffer;
-    glGenBuffers(1, &colorbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(colorBufferData), colorBufferData, GL_STATIC_DRAW);
 
     // 1rst attribute buffer : vertices
     glEnableVertexAttribArray(0);
@@ -360,25 +312,11 @@ void ObjectInPathAnalyzer::renderBackground()
         (void*)0            // array buffer offset
     );
 
-    // 2nd attribute buffer : colors
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        4,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // 3 indices starting at 0 -> 1 triangle
 
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
 
     glDeleteBuffers(1, &vertexbuffer);
-    glDeleteBuffers(1, &colorbuffer);
 }
 
 void ObjectInPathAnalyzer::renderForeground()
@@ -386,24 +324,16 @@ void ObjectInPathAnalyzer::renderForeground()
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilMask(0x00);
 
+    RGBAColor color{};
+    color.b = 1.0f;
+    color.a = 0.5f;
+    auto uColor = glGetUniformLocation(programID_, "colorIn");
+    glUniform4fv(uColor, 1, reinterpret_cast<float32_t*>(&color));
 
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, fgSize_ * 3 * sizeof(GLfloat), fgData_, GL_STATIC_DRAW);
-
-    static const GLfloat colorBufferData[] =
-    {
-        0.0f, 0.0f, 1.0f, 0.5f,
-        0.0f, 0.0f, 1.0f, 0.5f,
-        0.0f, 0.0f, 1.0f, 0.5f,
-        0.0f, 0.0f, 1.0f, 0.5f,
-    };
-
-    GLuint colorbuffer;
-    glGenBuffers(1, &colorbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(colorBufferData), colorBufferData, GL_STATIC_DRAW);
 
     // 1rst attribute buffer : vertices
     glEnableVertexAttribArray(0);
@@ -417,25 +347,11 @@ void ObjectInPathAnalyzer::renderForeground()
         (void*)0            // array buffer offset
     );
 
-    // 2nd attribute buffer : colors
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        4,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // 3 indices starting at 0 -> 1 triangle
 
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
 
     glDeleteBuffers(1, &vertexbuffer);
-    glDeleteBuffers(1, &colorbuffer);
 }
 
 void ObjectInPathAnalyzer::mockData()
@@ -477,8 +393,11 @@ std::vector<GLfloat> ObjectInPathAnalyzer::trivialObstacleTriangulation(const Ob
     return ret;
 }
 
-uint32_t ObjectInPathAnalyzer::renderObstacle(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData)
+uint32_t ObjectInPathAnalyzer::renderObstacle(const std::vector<GLfloat>& vertexData, RGBAColor color)
 {
+    auto uColor = glGetUniformLocation(programID_, "colorIn");
+    glUniform4fv(uColor, 1, reinterpret_cast<float32_t*>(&color));
+
     GLuint query;
     glGenQueries(1, &query);
     glBeginQuery(GL_SAMPLES_PASSED, query);
@@ -497,24 +416,9 @@ uint32_t ObjectInPathAnalyzer::renderObstacle(const std::vector<GLfloat>& vertex
         (void*)0            // array buffer offset
     );
 
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_);
-    glBufferData(GL_ARRAY_BUFFER, colorData.size() * sizeof(GLfloat), &colorData[0], GL_STATIC_DRAW);
-
-    // 2nd attribute buffer : colors
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        4,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // 3 indices starting at 0 -> 1 triangle
 
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
 
     glEndQuery(GL_SAMPLES_PASSED);
 
@@ -572,8 +476,10 @@ std::vector<GLfloat> ObjectInPathAnalyzer::trivialLaneTriangulation(const LaneDa
     return ret;
 }
 
-void ObjectInPathAnalyzer::renderLane(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData)
+void ObjectInPathAnalyzer::renderLane(const std::vector<GLfloat>& vertexData, RGBAColor color)
 {
+    auto uColor = glGetUniformLocation(programID_, "colorIn");
+    glUniform4fv(uColor, 1, reinterpret_cast<float32_t*>(&color));
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_);
     glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(GLfloat), &vertexData[0], GL_STATIC_DRAW);
@@ -589,24 +495,9 @@ void ObjectInPathAnalyzer::renderLane(const std::vector<GLfloat>& vertexData, co
         (void*)0            // array buffer offset
     );
 
-    // 2nd attribute buffer : colors
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer_);
-    glBufferData(GL_ARRAY_BUFFER, colorData.size() * sizeof(GLfloat), &colorData[0], GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        4,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-
     glDrawArrays(GL_TRIANGLES, 0, vertexData.size());
 
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
 }
 
 
@@ -638,21 +529,16 @@ std::vector<GLfloat> ObjectInPathAnalyzer::trivialFreespaceTriangulation(const F
     return ret;
 }
 
-void ObjectInPathAnalyzer::renderFreespace(const std::vector<GLfloat>& vertexData, const std::vector<GLfloat>& colorData)
+void ObjectInPathAnalyzer::renderFreespace(const std::vector<GLfloat>& vertexData, RGBAColor color)
 {
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(GLfloat), &vertexData[0], GL_STATIC_DRAW);
+    auto uColor = glGetUniformLocation(programID_, "colorIn");
+    glUniform4fv(uColor, 1, reinterpret_cast<float32_t*>(&color));
 
-    GLuint colorbuffer;
-    glGenBuffers(1, &colorbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glBufferData(GL_ARRAY_BUFFER, colorData.size() * sizeof(GLfloat), &colorData[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer_);
+    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(GLfloat), &vertexData[0], GL_STATIC_DRAW);
 
     // 1rst attribute buffer : vertices
     glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glVertexAttribPointer(
         0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
         3,                  // size
@@ -662,25 +548,9 @@ void ObjectInPathAnalyzer::renderFreespace(const std::vector<GLfloat>& vertexDat
         (void*)0            // array buffer offset
     );
 
-    // 2nd attribute buffer : colors
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        4,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-
     glDrawArrays(GL_TRIANGLE_FAN, 0, vertexData.size());
 
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-
-    glDeleteBuffers(1, &vertexbuffer);
-    glDeleteBuffers(1, &colorbuffer);
 }
 
 RGBColor ObjectInPathAnalyzer::getNextColor()
