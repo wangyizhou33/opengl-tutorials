@@ -138,6 +138,8 @@ private:
     // for demonstration purpose
     void mockData();
 
+    GLuint vertexbuffer_;
+    GLuint colorbuffer_;
     /**** result ****/
     std::vector<LaneAssignmentData> outputData_{};
 

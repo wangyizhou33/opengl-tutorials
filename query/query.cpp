@@ -133,13 +133,13 @@ int main(void)
 
     ObjectInPathAnalyzer oipa{};
     // oipa.process();
-    // for (size_t cnt = 0u; cnt < 100u; ++cnt)
-    // {
-    //     TIME_IT("process lane assignment",
-    //         oipa.process(std::vector<LaneData>({lane0, lane1, lane2}), 
-    //                 std::vector<ObstacleData>({obs0, obs1, obs2}))
-    //     );
-    // }
+    for (size_t cnt = 0u; cnt < 100u; ++cnt)
+    {
+        TIME_IT("process lane assignment",
+            oipa.process(std::vector<LaneData>({lane0, lane1, lane2}), 
+                    std::vector<ObstacleData>({obs0, obs1, obs2}))
+        );
+    }
 
     // mock freespace
     FreespaceData fs{};
@@ -165,9 +165,9 @@ int main(void)
     obs3.boundaryPoints.push_back(Point3f{.x = 5.0f, .y = 43.0f, .z = 0.0f});
     obs3.boundaryPoints.push_back(Point3f{.x = 5.0f, .y = 45.0f, .z = 0.0f});
 
-    oipa.process(fs,
-                 std::vector<ObstacleData>({obs0, obs1}),
-                 std::vector<ObstacleData>({obs1, obs2, obs3}));
+    // oipa.process(fs,
+    //              std::vector<ObstacleData>({obs0, obs1}),
+    //              std::vector<ObstacleData>({obs1, obs2, obs3}));
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, oipa.getFramebuffer()); // redundant. fbo is already the read framebuffer
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // set screen as the draw framebuffer
