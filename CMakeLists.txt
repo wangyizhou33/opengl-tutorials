@@ -667,6 +667,20 @@ target_link_libraries(query
 	${ALL_LIBS}
 )
 
+# add_executable(poly2tr
+# 	poly2tri/testbed/main.cc
+# 	poly2tri/poly2tri/common/shapes.cc
+# 	poly2tri/poly2tri/sweep/advancing_front.cc
+# 	poly2tri/poly2tri/sweep/cdt.cc
+# 	poly2tri/poly2tri/sweep/sweep_context.cc
+# 	poly2tri/poly2tri/sweep/sweep.cc
+# )
+# target_link_libraries(poly2tr
+# 	${ALL_LIBS}
+# )
+
+add_subdirectory("poly2tri")
+
 
 SOURCE_GROUP(common REGULAR_EXPRESSION ".*/common/.*" )
 SOURCE_GROUP(shaders REGULAR_EXPRESSION ".*/.*shader$" )
